@@ -95,3 +95,55 @@ Specify a device if you have multiple connected, e.g.:
 ```bash
 flutter run -d emulator-5554
 ```
+
+Configuration
+By default, the app points at the public NHTSA vPIC endpoint:
+
+```perl
+https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json
+```
+
+If you wish to point at a different endpoint or add an API key, adjust the base URL in:
+```
+bash
+lib/services/vpic_service.dart
+```
+
+Architecture & Folder Structure
+```
+bash
+lib/
+├── main.dart                # App entry point
+├── models/                  # Data classes (Make, Model, etc.)
+├── services/                # API calls (VPICService)
+├── providers/               # State management (VehicleProvider)
+├── screens/                 # Presentation layer (Home, Details, Favorites)
+├── widgets/                 # Reusable UI components
+├── utils/                   # Helpers (e.g., URL encoders)
+└── storage/                 # SharedPreferences helper
+test/
+├── unit/                    # Unit tests for services & providers
+├── widget/                  # Widget tests
+└── integration_test/        # End-to-end integration tests
+```
+
+##State Management
+We use the Provider package:
+
+VehicleProvider
+
+Fetches and caches the makes list.
+
+Holds the “current” make for the details page.
+
+Manages the favorites list in memory and syncs with local storage.
+
+Local Persistence
+Favorites are saved using SharedPreferences:
+
+Key: favorite_makes
+
+Stored as a JSON-encoded List<int> of make IDs.
+
+Loaded on app startup; updated when user toggles favorites.
+
