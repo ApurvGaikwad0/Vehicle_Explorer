@@ -1,149 +1,111 @@
-# Vehicle_Explorer
-Flutter mobile app integrating NHTSA vPIC API to display vehicle makes and models. Initially used API Ninjas Car API but switched to free vPIC API for unrestricted data. Follows best practices with Provider state management, modular widgets, SharedPreferences, and comprehensive unit, widget, and integration tests.
-
 # Vehicle Explorer
 
 A Flutter mobile application that retrieves and displays vehicle manufacturers (makes) and their models via the NHTSA vPIC public REST API. Users can browse, favorite, and manage their preferred manufacturers across app sessions.
+-
+In this project, I built a Flutter-based mobile application that integrates the NHTSA vPIC vehicle API, showcasing vehicle makes and their corresponding models. Initially, I selected the API Ninjas Car API but faced limitations due to premium-only fields. Consequently, I pivoted to the freely available NHTSA vPIC API to ensure complete data accessibility without restrictions. The application structure adheres to recommended best practices, leveraging Provider for state management, modular widget architecture, and persistent storage via SharedPreferences. Comprehensive tests were developed, including unit tests for API providers (VehicleProvider and VPICService), integration tests simulating user interactions, and widget tests for core UI components.
 
----
-
-## Table of Contents
-
-1. [Features](#features)  
-2. [Tech Stack](#tech-stack)  
-3. [Getting Started](#getting-started)  
-   - [Prerequisites](#prerequisites)  
-   - [Installation](#installation)  
-   - [Running the App](#running-the-app)  
-4. [Configuration](#configuration)  
-5. [Architecture & Folder Structure](#architecture--folder-structure)  
-6. [State Management](#state-management)  
-7. [Local Persistence](#local-persistence)  
-8. [Testing](#testing)  
-   - [Unit Tests](#unit-tests)  
-   - [Widget Tests](#widget-tests)  
-   - [Integration Tests](#integration-tests)  
-9. [Error Handling & Troubleshooting](#error-handling--troubleshooting)  
-10. [Future Enhancements](#future-enhancements)  
-11. [License](#license)  
-
----
 
 ## Features
+- **Manufacturer List**: Browse all vehicle makes
+- **Model Details**: View models for each manufacturer
+- **Favorites System**: Save favorite manufacturers
+- **Offline Persistence**: Favorites saved between sessions
+- **Comprehensive Testing**: Unit, widget, and integration tests
 
-- **List of Vehicle Makers**  
-  Fetches and displays all manufacturers from the NHTSA vPIC API.
+## Project Structure
+```
+vehicle-explorer/
+├── lib/
+│   ├── main.dart
+│   ├── models/
+│   ├── services/
+│   ├── providers/
+│   ├── screens/
+│   ├── widgets/
+│   └── storage/
+├── test/
+│   ├── unit/
+│   ├── widget/
+│   └── integration_test/
+└── pubspec.yaml
+```
 
-- **Models Detail View**  
-  Tap on a make to see its available vehicle models.
+## Core Implementation
+```dart
+// lib/providers/vehicle_provider.dart
+class VehicleProvider with ChangeNotifier {
+  List<Make> _makes = [];
+  List<int> _favorites = [];
 
-- **Favorites Management**  
-  Mark/unmark makers as favorites; view all favorites on a dedicated page.
+  List<Make> get makes => _makes;
+  List<int> get favorites => _favorites;
 
-- **Persistent Storage**  
-  Favorites survive app restarts via SharedPreferences.
+  Future<void> loadMakes() async {
+    _makes = await VPICService().getAllMakes();
+    notifyListeners();
+  }
 
-- **Robust Testing**  
-  - Unit tests for API service and provider  
-  - Widget tests for core UI components  
-  - Integration tests covering full user flow  
+  void toggleFavorite(int makeId) {
+    _favorites.contains(makeId) 
+      ? _favorites.remove(makeId)
+      : _favorites.add(makeId);
+    notifyListeners();
+  }
+}
+```
 
----
+## API Service
+```dart
+// lib/services/vpic_service.dart
+class VPICService {
+  final String _baseUrl = "https://vpic.nhtsa.dot.gov/api/vehicles";
 
-## Tech Stack
-
-- **Flutter & Dart** – UI framework and language  
-- **Provider** – State management  
-- **HTTP** – REST API calls  
-- **SharedPreferences** – Local key–value persistence  
-- **Mockito** – Mocking for tests  
-- **Flutter Test & Integration Test** – Testing framework  
-
----
+  Future<List<Make>> getAllMakes() async {
+    final response = await http.get(Uri.parse("$_baseUrl/GetAllMakes?format=json"));
+    if (response.statusCode == 200) {
+      return (jsonDecode(response.body)['Results'] as List)
+          .map((json) => Make.fromJson(json))
+          .toList();
+    }
+    throw Exception('Failed to load manufacturers');
+  }
+}
+```
 
 ## Getting Started
-
-### Prerequisites
-
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) ≥ 3.0.0  
-- Android Studio or Xcode (for iOS)  
-- A device or emulator/simulator  
-
-### Installation
-
-1. **Clone the repo**  
-   ```bash
-   git clone https://github.com/yourusername/vehicle-explorer.git
-   cd vehicle-explorer
-
-Fetch dependencies
 ```bash
+# Clone repository
+git clone https://github.com/yourusername/vehicle-explorer.git
+cd vehicle-explorer
+
+# Install dependencies
 flutter pub get
-```
-Generate any code (if applicable)
-```
-flutter pub run build_runner build --delete-conflicting-outputs
-```
-Running the App
 
-```bash
+# Generate serialization code
+flutter pub run build_runner build
+
+# Run application
 flutter run
 ```
 
-Specify a device if you have multiple connected, e.g.:
-
+## Testing Suite
 ```bash
-flutter run -d emulator-5554
+# Run all tests
+flutter test --coverage
+
+# Unit tests
+flutter test test/unit/
+
+# Widget tests
+flutter test test/widget/
+
+# Integration tests
+flutter drive --driver=test_driver/integration_test.dart \
+--target=integration_test/app_test.dart
 ```
 
-Configuration
-By default, the app points at the public NHTSA vPIC endpoint:
-
-```perl
-https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json
-```
-
-If you wish to point at a different endpoint or add an API key, adjust the base URL in:
-```
-bash
-lib/services/vpic_service.dart
-```
-
-Architecture & Folder Structure
-```
-bash
-lib/
-├── main.dart                # App entry point
-├── models/                  # Data classes (Make, Model, etc.)
-├── services/                # API calls (VPICService)
-├── providers/               # State management (VehicleProvider)
-├── screens/                 # Presentation layer (Home, Details, Favorites)
-├── widgets/                 # Reusable UI components
-├── utils/                   # Helpers (e.g., URL encoders)
-└── storage/                 # SharedPreferences helper
-test/
-├── unit/                    # Unit tests for services & providers
-├── widget/                  # Widget tests
-└── integration_test/        # End-to-end integration tests
-```
-
-##State Management
-We use the Provider package:
-
-VehicleProvider
-
-Fetches and caches the makes list.
-
-Holds the “current” make for the details page.
-
-Manages the favorites list in memory and syncs with local storage.
-
-Local Persistence
-Favorites are saved using SharedPreferences:
-
-Key: favorite_makes
-
-Stored as a JSON-encoded List<int> of make IDs.
-
-Loaded on app startup; updated when user toggles favorites.
-
+## Configuration
+| File | Purpose |
+|------|---------|
+| `lib/services/vpic_service.dart` | API endpoint configuration |
+| `lib/storage/local_storage.dart` | Persistence settings |
